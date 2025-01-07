@@ -1,0 +1,51 @@
+networks:
+  toubeelib.net:
+    driver: bridge
+    
+services:
+
+  # service api.toubeelib : api pour la prise de rdv
+  #
+  api.toubeelib:
+  #  image: 'canals/php:8.3-cli'
+    build:
+      context: build
+      dockerfile: 8.3-cli.Dockerfile
+    env_file: ./toubeelib.env
+    ports:
+      - '6080:80'
+    volumes:
+      - ./app:/var/php
+    working_dir: /var/php
+    networks:
+      - toubeelib.net
+    depends_on:
+      - toubeelib.db
+    command: php -S 0.0.0.0:80 -t /var/php/public
+
+  # service toubeelib.db : base de données postgresql
+  toubeelib.db:
+    image: 'postgres:latest'
+    env_file: ./toubeelibdb.env
+    ports:
+      - '5432:5432'
+    networks:
+      - toubeelib.net
+    volumes:
+      - ./sql/01-toubee_auth.schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./sql/02-toubeelib.schema.sql:/docker-entrypoint-initdb.d/02-schema.sql
+      - ./sql/03-toubee_auth.data.sql:/docker-entrypoint-initdb.d/03-data.sql
+      - ./sql/04-toubeelib.data.sql:/docker-entrypoint-initdb.d/04-data.sql
+    environment:
+      POSTGRES_DB: toubeelib
+      POSTGRES_USER: toubeelib
+      POSTGRES_PASSWORD: toubeelib
+  
+  # service administration des bases sql
+  #
+  adminer:
+    image: adminer
+    ports:
+      - '8080:8080'
+    networks:
+      - toubeelib.net
