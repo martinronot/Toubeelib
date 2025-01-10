@@ -2,35 +2,31 @@
 
 -- Table pour les spécialités médicales
 CREATE TABLE IF NOT EXISTS "specialites" (
-    "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+    "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
     "nom" VARCHAR(100) NOT NULL,
+    "description" text,
     CONSTRAINT "specialites_pkey" PRIMARY KEY ("id")
 );
 
 -- Table pour les praticiens
 CREATE TABLE IF NOT EXISTS "praticiens" (
-    "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+    "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
     "user_id" uuid NOT NULL REFERENCES "users"("id"),
-    "numero_rpps" VARCHAR(11) NOT NULL UNIQUE,
+    "rpps" VARCHAR(11) NOT NULL UNIQUE,
     "nom" VARCHAR(100) NOT NULL,
     "prenom" VARCHAR(100) NOT NULL,
-    "lieu_exercice" VARCHAR(255) NOT NULL,
+    "adresse" text NOT NULL,
+    "telephone" varchar(20) NOT NULL,
+    "specialite_id" uuid NOT NULL REFERENCES "specialites"("id"),
+    "honoraires_presentiel" DECIMAL(10,2) NOT NULL,
+    "honoraires_teleconsultation" DECIMAL(10,2) NOT NULL,
     "donnees_bancaires" JSONB,
     CONSTRAINT "praticiens_pkey" PRIMARY KEY ("id")
 );
 
--- Table de liaison praticiens-spécialités avec honoraires
-CREATE TABLE IF NOT EXISTS "praticien_specialites" (
-    "praticien_id" uuid NOT NULL REFERENCES "praticiens"("id"),
-    "specialite_id" uuid NOT NULL REFERENCES "specialites"("id"),
-    "honoraires_presentiel" DECIMAL(10,2) NOT NULL,
-    "honoraires_teleconsultation" DECIMAL(10,2) NOT NULL,
-    CONSTRAINT "praticien_specialites_pkey" PRIMARY KEY ("praticien_id", "specialite_id")
-);
-
 -- Table pour les contraintes temporelles des praticiens
 CREATE TABLE IF NOT EXISTS "contraintes_temporelles" (
-    "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+    "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
     "praticien_id" uuid NOT NULL REFERENCES "praticiens"("id"),
     "date_debut" TIMESTAMP NOT NULL,
     "date_fin" TIMESTAMP NOT NULL,
@@ -41,7 +37,7 @@ CREATE TABLE IF NOT EXISTS "contraintes_temporelles" (
 
 -- Table pour les patients
 CREATE TABLE IF NOT EXISTS "patients" (
-    "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+    "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
     "user_id" uuid NOT NULL REFERENCES "users"("id"),
     "numero_secu" VARCHAR(15) NOT NULL UNIQUE,
     "nom" VARCHAR(100) NOT NULL,
@@ -55,7 +51,7 @@ CREATE TABLE IF NOT EXISTS "patients" (
 
 -- Table pour les rendez-vous
 CREATE TABLE IF NOT EXISTS "rendez_vous" (
-    "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+    "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
     "patient_id" uuid NOT NULL REFERENCES "patients"("id"),
     "praticien_id" uuid NOT NULL REFERENCES "praticiens"("id"),
     "specialite_id" uuid NOT NULL REFERENCES "specialites"("id"),
@@ -69,7 +65,7 @@ CREATE TABLE IF NOT EXISTS "rendez_vous" (
 
 -- Table pour le personnel médical
 CREATE TABLE IF NOT EXISTS "personnel_medical" (
-    "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+    "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
     "user_id" uuid NOT NULL REFERENCES "users"("id"),
     "nom" VARCHAR(100) NOT NULL,
     "prenom" VARCHAR(100) NOT NULL,
@@ -81,4 +77,16 @@ CREATE TABLE IF NOT EXISTS "personnel_praticiens" (
     "personnel_id" uuid NOT NULL REFERENCES "personnel_medical"("id"),
     "praticien_id" uuid NOT NULL REFERENCES "praticiens"("id"),
     CONSTRAINT "personnel_praticiens_pkey" PRIMARY KEY ("personnel_id", "praticien_id")
+);
+
+-- Table pour les documents médicaux
+CREATE TABLE IF NOT EXISTS "documents" (
+    "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+    "patient_id" uuid NOT NULL REFERENCES "patients"("id"),
+    "praticien_id" uuid NOT NULL REFERENCES "praticiens"("id"),
+    "type" varchar(50) NOT NULL,
+    "titre" varchar(255) NOT NULL,
+    "contenu" text NOT NULL,
+    "date_creation" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "documents_pkey" PRIMARY KEY ("id")
 );

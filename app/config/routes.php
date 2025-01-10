@@ -9,6 +9,7 @@ use toubeelib\application\actions\rdv\CreateRendezVousAction;
 use toubeelib\application\actions\rdv\CancelRendezVousAction;
 use toubeelib\application\actions\rdv\ListDisponibilitesAction;
 use toubeelib\application\actions\auth\SigninAction;
+use toubeelib\application\actions\auth\GetMeAction;
 use toubeelib\application\actions\praticien\ListPraticiensAction;
 use toubeelib\application\middleware\JwtAuthMiddleware;
 use toubeelib\application\middleware\PraticienAuthzMiddleware;
@@ -19,6 +20,9 @@ return function( \Slim\App $app):\Slim\App {
 
     // Route d'authentification
     $app->post('/signin', SigninAction::class);
+    
+    // Route pour récupérer les informations de l'utilisateur connecté
+    $app->get('/me', GetMeAction::class)->add(JwtAuthMiddleware::class);
 
     // Routes pour les rendez-vous (protégées)
     $app->group('/rdvs', function($group) {

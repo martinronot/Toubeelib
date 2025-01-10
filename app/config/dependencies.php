@@ -1,7 +1,8 @@
 <?php
 
+declare(strict_types=1);
+
 use Psr\Container\ContainerInterface;
-use PDO;
 use toubeelib\application\interfaces\IAuthService;
 use toubeelib\application\services\AuthService;
 use toubeelib\application\providers\AuthProvider;
@@ -15,49 +16,51 @@ use toubeelib\infrastructure\repositories\ArrayRdvRepository;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Psr\Log\LoggerInterface;
-use DI;
 
 return [
-    PDO::class => function (ContainerInterface $c) {
-        $host = 'toubeelib.db';
-        $dbname = 'toubeelib';
-        $username = 'toubeelib';
-        $password = 'toubeelib';
+    'PDO' => function (ContainerInterface $c) {
+        $settings = $c->get('settings');
+        $dbSettings = $settings['db'];
         
-        return new PDO(
-            "pgsql:host=$host;dbname=$dbname",
-            $username,
-            $password,
-            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        return new \PDO(
+            "pgsql:host={$dbSettings['host']};dbname={$dbSettings['dbname']}",
+            $dbSettings['user'],
+            $dbSettings['password'],
+            [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]
         );
     },
 
     IAuthService::class => function (ContainerInterface $c) {
-        return new AuthService($c->get(PDO::class));
+        return new AuthService($c->get('PDO'));
     },
 
     AuthProvider::class => function (ContainerInterface $c) {
+        $settings = $c->get('settings');
         return new AuthProvider(
             $c->get(IAuthService::class),
             [
                 'jwt' => [
-                    'key' => 'secret',
-                    'access_token_expiration' => 60 * 60, // 1 heure en secondes
-                    'refresh_token_expiration' => 24 * 60 * 60 // 24 heures en secondes
+                    'key' => $settings['jwt']['secret_key'],
+                    'access_token_expiration' => $settings['jwt']['access_token_expiration'],
+                    'refresh_token_expiration' => $settings['jwt']['refresh_token_expiration']
                 ]
             ]
         );
     },
 
     ServicePraticienInterface::class => function (ContainerInterface $c) {
-        return new ServicePraticien(
-            new ArrayPraticienRepository()
-        );
+        return new ServicePraticien(new ArrayPraticienRepository());
     },
 
     IPraticienService::class => function (ContainerInterface $c) {
-        return new PraticienService(
-            $c->get(ServicePraticienInterface::class)
+        return new PraticienService($c->get(ServicePraticienInterface::class));
+    },
+
+    RendezVousService::class => function (ContainerInterface $c) {
+        return new RendezVousService(
+            new ArrayRdvRepository(),
+            $c->get(IPraticienService::class),
+            $c->get(LoggerInterface::class)
         );
     },
 
@@ -67,11 +70,7 @@ return [
         return $logger;
     },
 
-    RendezVousService::class => function (ContainerInterface $c) {
-        return new RendezVousService(
-            new ArrayRdvRepository(),
-            $c->get(IPraticienService::class),
-            $c->get(LoggerInterface::class)
-        );
+    'settings' => function (ContainerInterface $c) {
+        return require __DIR__ . '/settings.php';
     }
 ];
